@@ -32,11 +32,8 @@ int daemon_init(rd_config *config) {
     reload_req = false;
     signal_fd  = -1;
     pid_fd     = -1;
-    if (config->pid_file[0]) {
-        snprintf(pid_file, sizeof(pid_file), "%s", config->pid_file);
-    } else {
-        pid_file[0] = '\0';
-    }
+    if (config->pid_file[0]) { snprintf(pid_file, sizeof(pid_file), "%s", config->pid_file); }
+    else { pid_file[0] = '\0'; }
     return 0;
 }
 
@@ -177,8 +174,7 @@ int daemon_loop(void) {
             switch (si.ssi_signo) {
             case SIGTERM:
             case SIGINT:
-                log_info("daemon: received %s, shutting down",
-                         si.ssi_signo == SIGTERM ? "SIGTERM" : "SIGINT");
+                log_info("daemon: received %s, shutting down", si.ssi_signo == SIGTERM ? "SIGTERM" : "SIGINT");
                 shutd_req = true;
                 break;
             case SIGHUP:
@@ -188,6 +184,7 @@ int daemon_loop(void) {
             default:
                 break;
             }
+
         } else if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
             log_error("daemon: signalfd error (revents=0x%x)", pfd.revents);
             return -1;
@@ -197,9 +194,7 @@ int daemon_loop(void) {
             reload_req = false;
             if (config_reload() == 0) {
                 const rd_config *cfg = config_get();
-                if (cfg != NULL) {
-                    log_set_level(cfg->log_level);
-                }
+                if (cfg != NULL) { log_set_level(cfg->log_level); }
                 log_rotate();
                 log_info("daemon: reload complete");
             } else {
