@@ -5,6 +5,7 @@
 
 #include <json-c/json.h>
 #include <pthread.h>
+#include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -19,8 +20,15 @@ static void defaults(rd_config *c) {
     c->log_level = LOG_INFO;
     c->log_to_stderr = false;
     c->daemonize = true;
+
+    c->wifi_channel = 6;
+    snprintf(c->wifi_country, sizeof(c->wifi_country), "IN");
+    snprintf(c->wifi_ssid, sizeof(c->wifi_ssid), "Airtel_KHVSinghAirtel");
+    snprintf(c->wifi_password, sizeof(c->wifi_password), "maan090405#");
+    snprintf(c->dhcp_lease_time, sizeof(c->dhcp_lease_time), "12h");
+
     snprintf(c->log_path, sizeof(c->log_path), "/var/log/route-daemon/route-daemon.log");
-    snprintf(c->pid_file, sizeof(c->pid_file), "/run/route-daemon.pid");
+    snprintf(c->pid_file, sizeof(c->pid_file), "/run/route-daemon/pid");
 }
 
 //Returns 0 parsed, 1 missing , -1 invalid.
@@ -39,6 +47,7 @@ static int parse_file(const char *path, rd_config *c) {
     }
     defaults(c);
 
+    //basic parsing pattern, i'll keep addng to this
     json_object *v;
     if (json_object_object_get_ex(j, "log_level", &v)) {
         if (!json_object_is_type(v, json_type_string) ||
@@ -63,6 +72,26 @@ static int parse_file(const char *path, rd_config *c) {
     if (json_object_object_get_ex(j, "daemonize", &v)) {
         if (!json_object_is_type(v, json_type_boolean)) { log_error("config: daemonize invalid"); goto bad; }
         c->daemonize = json_object_get_boolean(v);
+    }
+
+    if(json_object_object_get_ex(j, "wifi_channel", &v)) {
+        if (!json_object_is_type(v, json_type_int)) { log_error("config: wifi_channel invalid"); goto bad; }
+        c->wifi_channel = json_object_get_int(v);
+    }
+    if(json_object_object_get_ex(j, "wifi_country", &v)) {
+        if (!json_object_is_type(v, json_type_string) ||
+            !json_object_get_string(v)[0]) { log_error("config: wifi_country invalid"); goto bad; }
+        snprintf(c->wifi_country, sizeof(c->wifi_country), "%s", json_object_get_string(v));
+    }
+    if(json_object_object_get_ex(j, "wifi_ssid", &v)) {
+        if (!json_object_is_type(v, json_type_string) ||
+            !json_object_get_string(v)[0]) { log_error("config: wifi_ssid invalid"); goto bad; }
+        snprintf(c->wifi_ssid, sizeof(c->wifi_ssid), "%s", json_object_get_string(v));
+    }
+    if(json_object_object_get_ex(j, "wifi_password", &v)) {
+        if (!json_object_is_type(v, json_type_string) ||
+            !json_object_get_string(v)[0]) { log_error("config: wifi_password invalid"); goto bad; }
+        snprintf(c->wifi_password, sizeof(c->wifi_password), "%s", json_object_get_string(v));
     }
 
     json_object_put(j);

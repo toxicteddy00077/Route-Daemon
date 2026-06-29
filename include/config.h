@@ -14,6 +14,21 @@ typedef struct {
     bool       log_to_stderr;   // Also mirror log lines to stderr.
     char       pid_file[256];
     bool       daemonize;
+
+    //network, ip, dhcp, lan, and wifi configs
+
+    char wan_iface[32];
+    char lan_iface[32];
+    char lan_address[32];
+    char lan_subnet[32];
+    char dhcp_range_start[32];
+    char dhcp_range_end[32];
+    char dhcp_lease_time[16];
+    char dns_servers[3][64];
+    char wifi_ssid[64];
+    char wifi_password[64];
+    char wifi_country[4];
+    int wifi_channel;
 } rd_config;
 
 int config_load(const char *env_path);
