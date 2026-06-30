@@ -21,6 +21,14 @@ static void defaults(rd_config *c) {
     c->log_to_stderr = false;
     c->daemonize = true;
 
+    /* network roles — left empty by default; operator MUST set in config
+     * (Phase 8 entrypoint can auto-detect from /proc/net/route). */
+    snprintf(c->lan_address,      sizeof(c->lan_address),      "192.168.50.1");
+    snprintf(c->lan_subnet,       sizeof(c->lan_subnet),       "192.168.50.0/24");
+    snprintf(c->dhcp_range_start, sizeof(c->dhcp_range_start), "192.168.50.10");
+    snprintf(c->dhcp_range_end,   sizeof(c->dhcp_range_end),   "192.168.50.250");
+    snprintf(c->dns_servers[0],   sizeof(c->dns_servers[0]),   "1.1.1.1");
+
     c->wifi_channel = 6;
     snprintf(c->wifi_country, sizeof(c->wifi_country), "IN");
     snprintf(c->wifi_ssid, sizeof(c->wifi_ssid), "Airtel_KHVSinghAirtel");
@@ -28,7 +36,7 @@ static void defaults(rd_config *c) {
     snprintf(c->dhcp_lease_time, sizeof(c->dhcp_lease_time), "12h");
 
     snprintf(c->log_path, sizeof(c->log_path), "/var/log/route-daemon/route-daemon.log");
-    snprintf(c->pid_file, sizeof(c->pid_file), "/run/route-daemon/pid");
+    snprintf(c->pid_file, sizeof(c->pid_file), "/run/route-daemon.pid");
 }
 
 //Returns 0 parsed, 1 missing , -1 invalid.
@@ -92,6 +100,41 @@ static int parse_file(const char *path, rd_config *c) {
         if (!json_object_is_type(v, json_type_string) ||
             !json_object_get_string(v)[0]) { log_error("config: wifi_password invalid"); goto bad; }
         snprintf(c->wifi_password, sizeof(c->wifi_password), "%s", json_object_get_string(v));
+    }
+
+    if (json_object_object_get_ex(j, "wan_iface", &v)) {
+        if (!json_object_is_type(v, json_type_string)) { log_error("config: wan_iface invalid"); goto bad; }
+        snprintf(c->wan_iface, sizeof(c->wan_iface), "%s", json_object_get_string(v));
+    }
+    if (json_object_object_get_ex(j, "lan_iface", &v)) {
+        if (!json_object_is_type(v, json_type_string)) { log_error("config: lan_iface invalid"); goto bad; }
+        snprintf(c->lan_iface, sizeof(c->lan_iface), "%s", json_object_get_string(v));
+    }
+    if (json_object_object_get_ex(j, "lan_address", &v)) {
+        if (!json_object_is_type(v, json_type_string)) { log_error("config: lan_address invalid"); goto bad; }
+        snprintf(c->lan_address, sizeof(c->lan_address), "%s", json_object_get_string(v));
+    }
+    if (json_object_object_get_ex(j, "lan_subnet", &v)) {
+        if (!json_object_is_type(v, json_type_string)) { log_error("config: lan_subnet invalid"); goto bad; }
+        snprintf(c->lan_subnet, sizeof(c->lan_subnet), "%s", json_object_get_string(v));
+    }
+    if (json_object_object_get_ex(j, "dhcp_range_start", &v)) {
+        if (!json_object_is_type(v, json_type_string)) { log_error("config: dhcp_range_start invalid"); goto bad; }
+        snprintf(c->dhcp_range_start, sizeof(c->dhcp_range_start), "%s", json_object_get_string(v));
+    }
+    if (json_object_object_get_ex(j, "dhcp_range_end", &v)) {
+        if (!json_object_is_type(v, json_type_string)) { log_error("config: dhcp_range_end invalid"); goto bad; }
+        snprintf(c->dhcp_range_end, sizeof(c->dhcp_range_end), "%s", json_object_get_string(v));
+    }
+    if (json_object_object_get_ex(j, "dns_servers", &v)) {
+        if (!json_object_is_type(v, json_type_array)) { log_error("config: dns_servers must be array"); goto bad; }
+        size_t len = json_object_array_length(v);
+        if (len > 3) len = 3;
+        for (size_t i = 0; i < len; i++) {
+            json_object *item = json_object_array_get_idx(v, i);
+            if (!json_object_is_type(item, json_type_string)) { log_error("config: dns_servers[%zu] not string", i); goto bad; }
+            snprintf(c->dns_servers[i], sizeof(c->dns_servers[i]), "%s", json_object_get_string(item));
+        }
     }
 
     json_object_put(j);

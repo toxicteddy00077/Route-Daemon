@@ -3,6 +3,7 @@
 #include "daemon.h"
 #include "log.h"
 #include "config.h"
+#include "dhcp_cl.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -12,6 +13,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
+#include <time.h>
 #include <sys/signalfd.h>
 #include <sys/file.h>
 #include <sys/types.h>
@@ -146,8 +148,20 @@ int daemon_loop(void) {
     }
 
     struct pollfd pfd = { .fd = signal_fd, .events = POLLIN };
+    time_t last_renew = time(NULL);  /* start the 30s window from now */
+    const time_t renew_interval = 30;  /* seconds */
 
     while (!shutd_req) {
+        /* periodic work: renew the WAN DHCP lease every 30s.
+         * Runs at the top of every iteration regardless of whether a
+         * signal woke the poll, so the timer isn't dependent on
+         * signal traffic. */
+        time_t now = time(NULL);
+        if (now - last_renew >= renew_interval) {
+            dhcp_cl_renew();
+            last_renew = now;
+        }
+
         int ret = poll(&pfd, 1, 1000);
         if (ret < 0) {
             if (errno == EINTR) {

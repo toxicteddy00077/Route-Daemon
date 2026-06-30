@@ -9,6 +9,8 @@
 #include "log.h"
 #include "config.h"
 #include "daemon.h"
+#include "interface.h"
+#include "dhcp_cl.h"
 
 struct cli_opts {
     const char *config_path;  // -c
@@ -62,6 +64,21 @@ static int parse_args(int argc, char *argv[], struct cli_opts *o) {
     return 0;
 }
 
+static int enable_ip_forward(void) {
+    FILE *f = fopen("/proc/sys/net/ipv4/ip_forward", "w");
+    if (f == NULL) {
+        log_error("ip_forward: cannot open /proc/sys/net/ipv4/ip_forward: %s",
+                  strerror(errno));
+        return -1;
+    }
+    if (fprintf(f, "1") < 1 || fclose(f) != 0) {
+        log_error("ip_forward: write failed");
+        return -1;
+    }
+    log_info("ip_forward enabled");
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
     struct cli_opts opts;
     int             exit_code = 0;
@@ -108,6 +125,64 @@ int main(int argc, char *argv[]) {
     log_init(boot.log_path, boot.log_level, boot.log_to_stderr);
     log_info("starting, version=%s", DAEMON_VERSION);
 
+    if (interface_init() < 0) {
+        log_error("interface_init failed");
+        exit_code = 1;
+        goto cleanup;
+    }
+
+    if (enable_ip_forward() < 0) {
+        exit_code = 1;
+        goto cleanup;
+    }
+
+    /* Phase 1 Step 5a: bring up LAN iface with our address, and prepare WAN
+     * for udhcpc. Skip if the operator hasn't configured roles yet. */
+    {
+        char wan[32], lan[32];
+        interface_get_roles(wan, sizeof(wan), lan, sizeof(lan));
+
+        if (lan[0] != '\0') {
+            if (iface_up(lan) < 0) {
+                log_error("iface_up(%s) failed", lan);
+                exit_code = 1;
+                goto cleanup;
+            }
+            iface_flush_addrs(lan);  /* idempotent: clean slate before adding */
+            char cidr[64];
+            snprintf(cidr, sizeof(cidr), "%s/24", boot.lan_address);
+            if (iface_add_addr(lan, cidr) < 0) {
+                log_error("iface_add_addr(%s, %s) failed", lan, cidr);
+                exit_code = 1;
+                goto cleanup;
+            }
+        } else {
+            log_warn("lan_iface not set in config; skipping LAN setup");
+        }
+
+        if (wan[0] != '\0') {
+            if (iface_up(wan) < 0) {
+                log_warn("iface_up(%s) failed (WAN may already be up)", wan);
+            }
+            iface_flush_addrs(wan);  /* best-effort: clean slate for udhcpc */
+        } else {
+            log_warn("wan_iface not set in config; skipping WAN setup");
+        }
+    }
+
+    /* Phase 1 Step 6: start the WAN DHCP client (udhcpc on the WAN iface).
+     * Failure here is non-fatal — the daemon can still run with a static
+     * address; we just log and continue. */
+    {
+        char wan[32];
+        interface_get_roles(wan, sizeof(wan), NULL, 0);
+        if (wan[0] != '\0') {
+            if (dhcp_cl_start(wan) < 0) {
+                log_warn("WAN DHCP client failed to start; continuing without it");
+            }
+        }
+    }
+
     if (daemon_init(&boot) < 0) {
         log_error("daemon_init failed");
         exit_code = 1;
@@ -137,6 +212,7 @@ int main(int argc, char *argv[]) {
     daemon_loop();   // blocks until SIGTERM/SIGINT
 
 cleanup:
+    dhcp_cl_stop();
     pid_file_remove();
     log_info("shutdown complete");
     log_close();
