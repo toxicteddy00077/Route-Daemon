@@ -31,6 +31,9 @@ void interface_get_roles(char *wan, size_t w_size,
  * CAP_NET_ADMIN. */
 int iface_up(const char *name);
 
+/* Bring the named interface down (`ip link set <name> down`). */
+int iface_down(const char *name);
+
 /* Add an IP address in CIDR form (`ip addr add <cidr> dev <name>`).
  * Example cidr: "192.168.50.1/24". */
 int iface_add_addr(const char *name, const char *cidr);
