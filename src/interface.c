@@ -81,6 +81,14 @@ int iface_up(const char *name) {
     return run_ip(cmd);
 }
 
+int iface_down(const char *name) {
+    if (name == NULL || name[0] == '\0') return -1;
+    char cmd[300];
+    snprintf(cmd, sizeof(cmd), "ip link set %s down", name);
+    log_info("interface: %s down", name);
+    return run_ip(cmd);
+}
+
 int iface_add_addr(const char *name, const char *cidr) {
     if (name == NULL || name[0] == '\0' || cidr == NULL || cidr[0] == '\0') return -1;
     char cmd[300];

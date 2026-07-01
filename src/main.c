@@ -11,6 +11,9 @@
 #include "daemon.h"
 #include "interface.h"
 #include "dhcp_cl.h"
+#include "dhcp_sv.h"
+#include "firewall.h"
+#include "wifi_ap.h"
 
 struct cli_opts {
     const char *config_path;  // -c
@@ -183,6 +186,36 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    /* Phase 1 Step 7: WiFi AP (hostapd) on the LAN iface. */
+    {
+        char lan[32];
+        interface_get_roles(NULL, 0, lan, sizeof(lan));
+        if (lan[0] != '\0') {
+            if (wifi_ap_start(&boot) < 0) {
+                log_warn("wifi_ap_start failed; AP not broadcasting");
+            }
+        }
+    }
+
+    /* Phase 1 Step 5b: apply nftables masquerade + forward rules. */
+    if (firewall_apply(&boot) < 0) {
+        log_error("firewall_apply failed");
+        exit_code = 1;
+        goto cleanup;
+    }
+
+    /* Phase 1 Step 7b: LAN DHCP server (dnsmasq) — only after the
+     * firewall is up, so the gateway is reachable when clients get leases. */
+    {
+        char lan[32];
+        interface_get_roles(NULL, 0, lan, sizeof(lan));
+        if (lan[0] != '\0') {
+            if (dhcp_sv_start(&boot) < 0) {
+                log_warn("dhcp_server failed to start; clients won't get leases");
+            }
+        }
+    }
+
     if (daemon_init(&boot) < 0) {
         log_error("daemon_init failed");
         exit_code = 1;
@@ -212,6 +245,9 @@ int main(int argc, char *argv[]) {
     daemon_loop();   // blocks until SIGTERM/SIGINT
 
 cleanup:
+    dhcp_sv_stop();
+    firewall_flush();
+    wifi_ap_stop();
     dhcp_cl_stop();
     pid_file_remove();
     log_info("shutdown complete");

@@ -31,8 +31,8 @@ static void defaults(rd_config *c) {
 
     c->wifi_channel = 6;
     snprintf(c->wifi_country, sizeof(c->wifi_country), "IN");
-    snprintf(c->wifi_ssid, sizeof(c->wifi_ssid), "Airtel_KHVSinghAirtel");
-    snprintf(c->wifi_password, sizeof(c->wifi_password), "maan090405#");
+    snprintf(c->wifi_ssid, sizeof(c->wifi_ssid), "Route-Daemon");
+    snprintf(c->wifi_password, sizeof(c->wifi_password), "43214321");
     snprintf(c->dhcp_lease_time, sizeof(c->dhcp_lease_time), "12h");
 
     snprintf(c->log_path, sizeof(c->log_path), "/var/log/route-daemon/route-daemon.log");
