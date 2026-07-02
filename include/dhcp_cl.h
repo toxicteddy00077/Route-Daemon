@@ -9,5 +9,6 @@ int  dhcp_cl_start(const char *iface);
 int  dhcp_cl_renew(void);     /* SIGUSR1 to udhcpc to renew */
 bool dhcp_cl_lease(void);     /* true if lease_path has a valid "ip=" line */
 int  dhcp_cl_stop(void);      /* SIGTERM + reap; idempotent */
+bool dhcp_cl_running(void);   /* true if child_pid > 0 */
 
 #endif

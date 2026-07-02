@@ -10,5 +10,6 @@
 int  wifi_ap_start(const rd_config *cfg);
 int  wifi_ap_stop(void);          /* kill hostapd, restore managed mode */
 bool wifi_ap_running(void);
+bool wifi_ap_active(void);        /* true if child started successfully */
 
 #endif

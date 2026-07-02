@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <netinet/in.h>
 #include <sys/stat.h>
 
 static rd_config *current_cfg;
@@ -37,6 +38,12 @@ static void defaults(rd_config *c) {
 
     snprintf(c->log_path, sizeof(c->log_path), "/var/log/route-daemon/route-daemon.log");
     snprintf(c->pid_file, sizeof(c->pid_file), "/run/route-daemon.pid");
+
+    c->management_port_count = 0;
+    c->port_forward_count    = 0;
+
+    c->wan_bandwidth_up   = 0;
+    c->wan_bandwidth_down = 0;
 }
 
 //Returns 0 parsed, 1 missing , -1 invalid.
@@ -136,6 +143,48 @@ static int parse_file(const char *path, rd_config *c) {
             snprintf(c->dns_servers[i], sizeof(c->dns_servers[i]), "%s", json_object_get_string(item));
         }
     }
+
+    /* Phase 2: management_ports = [int, ...] (LAN-only TCP services like a future web UI). */
+    if (json_object_object_get_ex(j, "management_ports", &v)) {
+        if (!json_object_is_type(v, json_type_array)) { log_error("config: management_ports must be array"); goto bad; }
+        size_t mlen = json_object_array_length(v);
+        if (mlen > MAX_MGMT_PORTS) mlen = MAX_MGMT_PORTS;
+        c->management_port_count = (int)mlen;
+        for (size_t i = 0; i < mlen; i++) {
+            json_object *item = json_object_array_get_idx(v, i);
+            c->management_ports[i] = json_object_get_int(item);
+        }
+    }
+
+    /* Phase 2: port_forwards = [{proto, ext_port, int_ip, int_port}, ...]. */
+    if (json_object_object_get_ex(j, "port_forwards", &v)) {
+        if (!json_object_is_type(v, json_type_array)) { log_error("config: port_forwards must be array"); goto bad; }
+        size_t plen = json_object_array_length(v);
+        if (plen > MAX_PORT_FORWARDS) plen = MAX_PORT_FORWARDS;
+        c->port_forward_count = (int)plen;
+        for (size_t i = 0; i < plen; i++) {
+            json_object *item = json_object_array_get_idx(v, i);
+            json_object *f;
+            c->port_forwards[i].proto    = IPPROTO_TCP;
+            c->port_forwards[i].ext_port = 0;
+            c->port_forwards[i].int_port = 0;
+            c->port_forwards[i].int_ip[0] = '\0';
+            if (json_object_object_get_ex(item, "proto", &f) && json_object_is_type(f, json_type_string)) {
+                const char *s = json_object_get_string(f);
+                if (strcmp(s, "udp") == 0) c->port_forwards[i].proto = IPPROTO_UDP;
+            }
+            if (json_object_object_get_ex(item, "ext_port", &f)) c->port_forwards[i].ext_port = json_object_get_int(f);
+            if (json_object_object_get_ex(item, "int_port", &f)) c->port_forwards[i].int_port = json_object_get_int(f);
+            if (json_object_object_get_ex(item, "int_ip", &f) && json_object_is_type(f, json_type_string)) {
+                snprintf(c->port_forwards[i].int_ip, sizeof(c->port_forwards[i].int_ip), "%s", json_object_get_string(f));
+            }
+        }
+    }
+
+    if (json_object_object_get_ex(j, "wan_bandwidth_up", &v))
+        c->wan_bandwidth_up = json_object_get_int(v);
+    if (json_object_object_get_ex(j, "wan_bandwidth_down", &v))
+        c->wan_bandwidth_down = json_object_get_int(v);
 
     json_object_put(j);
     return 0;

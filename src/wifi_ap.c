@@ -20,6 +20,7 @@
 #define HOSTAPD_CONF "/var/lib/route-daemon/hostapd.conf"
 
 static pid_t child_pid   = -1;
+static bool  active      = false;
 static char  ap_iface[32];
 
 static int ensure_state_dir(void) {
@@ -109,6 +110,7 @@ int wifi_ap_start(const rd_config *cfg) {
         _exit(127);
     }
     child_pid = pid;
+    active = true;
     log_info("wifi_ap: hostapd started (pid %d)", pid);
     return 0;
 }
@@ -123,6 +125,7 @@ int wifi_ap_stop(void) {
     int status;
     waitpid(child_pid, &status, 0);
     child_pid = -1;
+    active = false;
 
     /* Restore managed mode so the iface is usable for diagnostics. */
     if (ap_iface[0] != '\0') {
@@ -135,4 +138,8 @@ int wifi_ap_stop(void) {
 
 bool wifi_ap_running(void) {
     return child_pid > 0;
+}
+
+bool wifi_ap_active(void) {
+    return active;
 }

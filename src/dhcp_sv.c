@@ -106,3 +106,5 @@ int dhcp_sv_reload(void) {
 bool dhcp_sv_running(void) {
     return child_pid > 0;
 }
+
+

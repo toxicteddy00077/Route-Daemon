@@ -4,6 +4,7 @@
 #include "log.h"
 #include "config.h"
 #include "dhcp_cl.h"
+#include "health.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -148,18 +149,26 @@ int daemon_loop(void) {
     }
 
     struct pollfd pfd = { .fd = signal_fd, .events = POLLIN };
-    time_t last_renew = time(NULL);  /* start the 30s window from now */
-    const time_t renew_interval = 30;  /* seconds */
+    time_t last_renew  = time(NULL);
+    time_t last_health = time(NULL);
+    const time_t renew_interval  = 30;  /* seconds */
+    const time_t health_interval = 30;  /* seconds */
 
     while (!shutd_req) {
-        /* periodic work: renew the WAN DHCP lease every 30s.
-         * Runs at the top of every iteration regardless of whether a
-         * signal woke the poll, so the timer isn't dependent on
-         * signal traffic. */
+        /* periodic work: renew the WAN DHCP lease and take a health snapshot. */
         time_t now = time(NULL);
         if (now - last_renew >= renew_interval) {
             dhcp_cl_renew();
             last_renew = now;
+        }
+        if (now - last_health >= health_interval) {
+            struct rd_health h;
+            health_snapshot(&h);
+            log_info("health: wan=%d lan=%d dhcpc=%d dhcps=%d ap=%d fw=%d shaper=%d up=%ds",
+                     h.wan_up, h.lan_up, h.dhcp_client_running,
+                     h.dhcp_server_running, h.hostapd_running,
+                     h.firewall_applied, h.shaper_applied, h.uptime_sec);
+            last_health = now;
         }
 
         int ret = poll(&pfd, 1, 1000);

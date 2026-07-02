@@ -96,3 +96,5 @@ bool dhcp_cl_lease(void) {
     fclose(f);
     return found;
 }
+
+bool dhcp_cl_running(void) { return child_pid > 0; }

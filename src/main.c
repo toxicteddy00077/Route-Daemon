@@ -14,6 +14,8 @@
 #include "dhcp_sv.h"
 #include "firewall.h"
 #include "wifi_ap.h"
+#include "shaper.h"
+#include "health.h"
 
 struct cli_opts {
     const char *config_path;  // -c
@@ -204,6 +206,11 @@ int main(int argc, char *argv[]) {
         goto cleanup;
     }
 
+    /* Phase 3: ingress/egress shaping + bufferbloat mitigation. */
+    if (shaper_init(&boot) < 0) {
+        log_warn("shaper_init failed; continuing without shaping");
+    }
+
     /* Phase 1 Step 7b: LAN DHCP server (dnsmasq) — only after the
      * firewall is up, so the gateway is reachable when clients get leases. */
     {
@@ -242,9 +249,11 @@ int main(int argc, char *argv[]) {
     }
 
     log_info("entering main loop");
+    health_init();
     daemon_loop();   // blocks until SIGTERM/SIGINT
 
 cleanup:
+    shaper_teardown();
     dhcp_sv_stop();
     firewall_flush();
     wifi_ap_stop();
