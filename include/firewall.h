@@ -3,12 +3,12 @@
 
 #include "config.h"
 
-/* nftables-based firewall. Generates an nft ruleset from cfg and
- * applies via `nft -f`. */
+// nftables-based firewall. Generates an nft ruleset from cfg and
+// applies via `nft -f`.
 
-int firewall_init(void);             /* sanity check: nft on PATH */
-int firewall_apply(const rd_config *cfg);  /* generate + apply ruleset */
-int firewall_flush(void);            /* clear all rules (cleanup) */
-bool firewall_is_active(void);       /* true if apply() succeeded and not yet flushed */
+int firewall_init(void);             // sanity check: nft on PATH
+int firewall_apply(const rd_config *cfg);  // generate + apply ruleset
+int firewall_flush(void);            // clear all rules (cleanup)
+bool firewall_is_active(void);       // true if apply() succeeded and not yet flushed
 
 #endif

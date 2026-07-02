@@ -11,9 +11,9 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+
 #define SYS_NET_PATH "/sys/class/net"
 
-/* Returns 1 if up, 0 if down/-1 on read error. */
 static int read_operstate(const char *name) {
     char path[300];
     snprintf(path, sizeof(path), "%s/%s/operstate", SYS_NET_PATH, name);
@@ -28,6 +28,20 @@ static int read_operstate(const char *name) {
     return (n == 1 && strcmp(state, "up") == 0) ? 1 : 0;
 }
 
+// Run `ip ...` and return its exit status (0 on success, -1 on fork failure).
+static int run_ip(const char *cmd) {
+    int rc = system(cmd);
+    if (rc == -1) {
+        log_error("interface: fork failed: %s", strerror(errno));
+        return -1;
+    }
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0) {
+        log_error("interface: %s failed (rc=%d)", cmd, WEXITSTATUS(rc));
+        return -1;
+    }
+    return 0;
+}
+
 int interface_init(void) {
     struct stat st;
     if (stat(SYS_NET_PATH, &st) != 0 || !S_ISDIR(st.st_mode)) {
@@ -38,7 +52,7 @@ int interface_init(void) {
 }
 
 int interface_refresh(void) {
-    return 0;  /* operstate is read fresh each is_up() call */
+    return 0;  // operstate is read fresh each is_up() call
 }
 
 bool interface_is_up(const char *ifname) {
@@ -57,20 +71,6 @@ void interface_get_roles(char *wan, size_t w_size, char *lan, size_t l_size) {
 
     if (wan != NULL && w_size > 0) snprintf(wan, w_size, "%s", cfg->wan_iface);
     if (lan != NULL && l_size > 0) snprintf(lan, l_size, "%s", cfg->lan_iface);
-}
-
-/* Run `ip ...` and return its exit status (0 on success, -1 on fork failure). */
-static int run_ip(const char *cmd) {
-    int rc = system(cmd);
-    if (rc == -1) {
-        log_error("interface: fork failed: %s", strerror(errno));
-        return -1;
-    }
-    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0) {
-        log_error("interface: %s failed (rc=%d)", cmd, WEXITSTATUS(rc));
-        return -1;
-    }
-    return 0;
 }
 
 int iface_up(const char *name) {

@@ -15,7 +15,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-/* WiFi AP: iw <iface> set type __ap, write hostapd.conf, fork hostapd. */
+// Set the LAN iface to AP mode, write hostapd.conf, and fork hostapd.
 
 #define HOSTAPD_CONF "/var/lib/route-daemon/hostapd.conf"
 
@@ -85,7 +85,6 @@ int wifi_ap_start(const rd_config *cfg) {
     if (ensure_state_dir() < 0) return -1;
     if (write_hostapd_conf(cfg) < 0) return -1;
 
-    /* Set interface to AP mode (must be down first). */
     if (iface_down(cfg->lan_iface) < 0) {
         log_warn("wifi_ap: iface_down failed (continuing)");
     }
@@ -127,7 +126,6 @@ int wifi_ap_stop(void) {
     child_pid = -1;
     active = false;
 
-    /* Restore managed mode so the iface is usable for diagnostics. */
     if (ap_iface[0] != '\0') {
         char cmd[300];
         snprintf(cmd, sizeof(cmd), "iw dev %s set type managed", ap_iface);

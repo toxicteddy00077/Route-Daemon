@@ -120,6 +120,17 @@ int pid_file_create(const char *path) {
     return 0;
 }
 
+int pid_file_remove(void) {
+    if (pid_file[0] != '\0') {
+        unlink(pid_file);
+    }
+    if (pid_fd >= 0) {
+        close(pid_fd);
+        pid_fd = -1;
+    }
+    return 0;
+}
+
 int signal_setup(void) {
     if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) return -1;
     if (signal(SIGTTIN, SIG_IGN) == SIG_ERR) return -1;
@@ -151,11 +162,11 @@ int daemon_loop(void) {
     struct pollfd pfd = { .fd = signal_fd, .events = POLLIN };
     time_t last_renew  = time(NULL);
     time_t last_health = time(NULL);
-    const time_t renew_interval  = 30;  /* seconds */
-    const time_t health_interval = 30;  /* seconds */
+    const time_t renew_interval  = 30;  // seconds
+    const time_t health_interval = 30;  // seconds
 
     while (!shutd_req) {
-        /* periodic work: renew the WAN DHCP lease and take a health snapshot. */
+        // periodic work: renew the WAN DHCP lease and take a health snapshot.
         time_t now = time(NULL);
         if (now - last_renew >= renew_interval) {
             dhcp_cl_renew();
@@ -227,16 +238,5 @@ int daemon_loop(void) {
     }
 
     log_info("daemon: loop exiting");
-    return 0;
-}
-
-int pid_file_remove(void) {
-    if (pid_file[0] != '\0') {
-        unlink(pid_file);
-    }
-    if (pid_fd >= 0) {
-        close(pid_fd);
-        pid_fd = -1;
-    }
     return 0;
 }

@@ -108,9 +108,9 @@ int main(int argc, char *argv[]) {
         return 78;
     }
 
-    /* CLI overrides: -p and -l mutate the loaded config struct.
-     * Safe because this is the boot path, not the reload path (no other
-     * readers can observe a half-mutated config here). */
+    // CLI overrides: -p and -l mutate the loaded config struct.
+    // Safe because this is the boot path, not the reload path (no other
+    // readers can observe a half-mutated config here).
     rd_config boot = *cfg;  // local copy so we don't mutate the live singleton
     if (opts.pid_file != NULL) {
         snprintf(boot.pid_file, sizeof(boot.pid_file), "%s", opts.pid_file);
@@ -141,8 +141,8 @@ int main(int argc, char *argv[]) {
         goto cleanup;
     }
 
-    /* Phase 1 Step 5a: bring up LAN iface with our address, and prepare WAN
-     * for udhcpc. Skip if the operator hasn't configured roles yet. */
+    // Phase 1 Step 5a: bring up LAN iface with our address, and prepare WAN
+    // for udhcpc. Skip if the operator hasn't configured roles yet.
     {
         char wan[32], lan[32];
         interface_get_roles(wan, sizeof(wan), lan, sizeof(lan));
@@ -153,7 +153,7 @@ int main(int argc, char *argv[]) {
                 exit_code = 1;
                 goto cleanup;
             }
-            iface_flush_addrs(lan);  /* idempotent: clean slate before adding */
+            iface_flush_addrs(lan);  // idempotent: clean slate before adding
             char cidr[64];
             snprintf(cidr, sizeof(cidr), "%s/24", boot.lan_address);
             if (iface_add_addr(lan, cidr) < 0) {
@@ -169,15 +169,15 @@ int main(int argc, char *argv[]) {
             if (iface_up(wan) < 0) {
                 log_warn("iface_up(%s) failed (WAN may already be up)", wan);
             }
-            iface_flush_addrs(wan);  /* best-effort: clean slate for udhcpc */
+            iface_flush_addrs(wan);  // best-effort: clean slate for udhcpc
         } else {
             log_warn("wan_iface not set in config; skipping WAN setup");
         }
     }
 
-    /* Phase 1 Step 6: start the WAN DHCP client (udhcpc on the WAN iface).
-     * Failure here is non-fatal — the daemon can still run with a static
-     * address; we just log and continue. */
+    // Phase 1 Step 6: start the WAN DHCP client (udhcpc on the WAN iface).
+    // Failure here is non-fatal — the daemon can still run with a static
+    // address; we just log and continue.
     {
         char wan[32];
         interface_get_roles(wan, sizeof(wan), NULL, 0);
@@ -188,7 +188,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    /* Phase 1 Step 7: WiFi AP (hostapd) on the LAN iface. */
+    // Phase 1 Step 7: WiFi AP (hostapd) on the LAN iface.
     {
         char lan[32];
         interface_get_roles(NULL, 0, lan, sizeof(lan));
@@ -199,20 +199,20 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    /* Phase 1 Step 5b: apply nftables masquerade + forward rules. */
+    // Phase 1 Step 5b: apply nftables masquerade + forward rules.
     if (firewall_apply(&boot) < 0) {
         log_error("firewall_apply failed");
         exit_code = 1;
         goto cleanup;
     }
 
-    /* Phase 3: ingress/egress shaping + bufferbloat mitigation. */
+    // Phase 3: ingress/egress shaping + bufferbloat mitigation.
     if (shaper_init(&boot) < 0) {
         log_warn("shaper_init failed; continuing without shaping");
     }
 
-    /* Phase 1 Step 7b: LAN DHCP server (dnsmasq) — only after the
-     * firewall is up, so the gateway is reachable when clients get leases. */
+    // Phase 1 Step 7b: LAN DHCP server (dnsmasq) — only after the
+    // firewall is up, so the gateway is reachable when clients get leases.
     {
         char lan[32];
         interface_get_roles(NULL, 0, lan, sizeof(lan));

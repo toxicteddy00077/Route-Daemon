@@ -14,7 +14,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-/* LAN DHCP server: wraps dnsmasq. Config at STATE_DIR/dnsmasq.conf. */
 
 #define DNSMASQ_CONF  "/var/lib/route-daemon/dnsmasq.conf"
 
@@ -70,7 +69,7 @@ int dhcp_sv_start(const rd_config *cfg) {
         return -1;
     }
     if (pid == 0) {
-        /* -C config file, -k do NOT daemonize (we track the child). */
+        // -C config file, -k do NOT daemonize (we track the child).
         execlp("dnsmasq", "dnsmasq", "-C", DNSMASQ_CONF, "-k", (char *)NULL);
         log_error("dhcp_server: execlp dnsmasq failed: %s", strerror(errno));
         _exit(127);
@@ -106,5 +105,3 @@ int dhcp_sv_reload(void) {
 bool dhcp_sv_running(void) {
     return child_pid > 0;
 }
-
-

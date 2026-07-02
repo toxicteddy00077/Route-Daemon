@@ -22,8 +22,8 @@ static void defaults(rd_config *c) {
     c->log_to_stderr = false;
     c->daemonize = true;
 
-    /* network roles — left empty by default; operator MUST set in config
-     * (Phase 8 entrypoint can auto-detect from /proc/net/route). */
+    // network roles — left empty by default; operator MUST set in config
+    // (Phase 8 entrypoint can auto-detect from /proc/net/route).
     snprintf(c->lan_address,      sizeof(c->lan_address),      "192.168.50.1");
     snprintf(c->lan_subnet,       sizeof(c->lan_subnet),       "192.168.50.0/24");
     snprintf(c->dhcp_range_start, sizeof(c->dhcp_range_start), "192.168.50.10");
@@ -62,7 +62,7 @@ static int parse_file(const char *path, rd_config *c) {
     }
     defaults(c);
 
-    //basic parsing pattern, i'll keep addng to this
+    //basic parsing pattern, I'll keep adding to this
     json_object *v;
     if (json_object_object_get_ex(j, "log_level", &v)) {
         if (!json_object_is_type(v, json_type_string) ||
@@ -89,21 +89,21 @@ static int parse_file(const char *path, rd_config *c) {
         c->daemonize = json_object_get_boolean(v);
     }
 
-    if(json_object_object_get_ex(j, "wifi_channel", &v)) {
+    if (json_object_object_get_ex(j, "wifi_channel", &v)) {
         if (!json_object_is_type(v, json_type_int)) { log_error("config: wifi_channel invalid"); goto bad; }
         c->wifi_channel = json_object_get_int(v);
     }
-    if(json_object_object_get_ex(j, "wifi_country", &v)) {
+    if (json_object_object_get_ex(j, "wifi_country", &v)) {
         if (!json_object_is_type(v, json_type_string) ||
             !json_object_get_string(v)[0]) { log_error("config: wifi_country invalid"); goto bad; }
         snprintf(c->wifi_country, sizeof(c->wifi_country), "%s", json_object_get_string(v));
     }
-    if(json_object_object_get_ex(j, "wifi_ssid", &v)) {
+    if (json_object_object_get_ex(j, "wifi_ssid", &v)) {
         if (!json_object_is_type(v, json_type_string) ||
             !json_object_get_string(v)[0]) { log_error("config: wifi_ssid invalid"); goto bad; }
         snprintf(c->wifi_ssid, sizeof(c->wifi_ssid), "%s", json_object_get_string(v));
     }
-    if(json_object_object_get_ex(j, "wifi_password", &v)) {
+    if (json_object_object_get_ex(j, "wifi_password", &v)) {
         if (!json_object_is_type(v, json_type_string) ||
             !json_object_get_string(v)[0]) { log_error("config: wifi_password invalid"); goto bad; }
         snprintf(c->wifi_password, sizeof(c->wifi_password), "%s", json_object_get_string(v));
@@ -144,7 +144,7 @@ static int parse_file(const char *path, rd_config *c) {
         }
     }
 
-    /* Phase 2: management_ports = [int, ...] (LAN-only TCP services like a future web UI). */
+    // Phase 2: management_ports = [int, ...] (LAN-only TCP services like a future web UI).
     if (json_object_object_get_ex(j, "management_ports", &v)) {
         if (!json_object_is_type(v, json_type_array)) { log_error("config: management_ports must be array"); goto bad; }
         size_t mlen = json_object_array_length(v);
@@ -156,7 +156,7 @@ static int parse_file(const char *path, rd_config *c) {
         }
     }
 
-    /* Phase 2: port_forwards = [{proto, ext_port, int_ip, int_port}, ...]. */
+    // Phase 2: port_forwards = [{proto, ext_port, int_ip, int_port}, ...].
     if (json_object_object_get_ex(j, "port_forwards", &v)) {
         if (!json_object_is_type(v, json_type_array)) { log_error("config: port_forwards must be array"); goto bad; }
         size_t plen = json_object_array_length(v);
@@ -212,7 +212,7 @@ static int config_swap(rd_config *new_cfg) {
     return 0;
 }
 
-// Here we create a fresh config from path
+    // Here we create a fresh config from path.
 static int load_and_publish(const char *path, bool warn_missing) {
     rd_config *new_cfg = calloc(1, sizeof(*new_cfg));
     if (!new_cfg) { log_error("config: out of memory"); return -1; }

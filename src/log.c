@@ -27,8 +27,7 @@ const char *LOG_LEVEL_NAMES[] = {
 
 const int LOG_LEVEL_COUNT = sizeof(LOG_LEVEL_NAMES) / sizeof(LOG_LEVEL_NAMES[0]);
 
-
-//Definitions
+// Initialization, setup, and helpers.
 void log_init(const char *path, log_levels min_level, bool to_stderr) {
     if (path != NULL) {
         strncpy(log_path, path, sizeof(log_path) - 1);
@@ -94,7 +93,7 @@ void log_rotate(void) {
     }
 }
 
-//Core Logger
+// Core logger.
 void write_log(log_levels level, const char *file, int line, const char *fmt, ...) {
     if (level < cur_level) {
         return;

@@ -14,7 +14,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-/* WAN DHCP client: wraps BusyBox udhcpc. Lease at /var/lib/udhcpc/<iface>.lease. */
+// WAN DHCP client: wraps BusyBox udhcpc. Lease at /var/lib/udhcpc/<iface>.lease.
 
 #define UDHCP_LEASE_DIR "/var/lib/udhcpc"
 
@@ -49,7 +49,7 @@ int dhcp_cl_start(const char *iface) {
         return -1;
     }
     if (pid == 0) {
-        /* -i iface, -p lease path, -f foreground, -q quiet, -t 1 try-once. */
+        // -i iface, -p lease path, -f foreground, -q quiet, -t 1 try-once.
         execlp("udhcpc", "udhcpc",
                "-i", iface, "-p", lease_path,
                "-f", "-q", "-t", "1", (char *)NULL);

@@ -13,14 +13,12 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 
-/* nftables ruleset: DNAT port-forwards + masquerade, INPUT drop with LAN mgmt + ICMP exceptions, FORWARD anti-spoof + LAN->WAN, OUTPUT accept. Anti-spoof sysctls applied alongside. Atomic apply with rollback via backup ruleset. */
-
 #define NFT_CONF   "/var/lib/route-daemon/nftables.conf"
 #define NFT_BACKUP "/var/lib/route-daemon/nftables.backup"
 
 static bool active = false;
 
-/* run shell command; return 0 on success, -1 on non-zero exit or fork failure. */
+// run shell command; return 0 on success, -1 on non-zero exit or fork failure.
 static int run_cmd(const char *cmd) {
     int rc = system(cmd);
     if (rc == -1) { log_error("firewall: fork: %s", strerror(errno)); return -1; }
@@ -28,7 +26,7 @@ static int run_cmd(const char *cmd) {
     return 0;
 }
 
-/* write a sysctl value; best-effort (log and continue on failure). */
+// write a sysctl value; best-effort (log and continue on failure).
 static int write_sysctl(const char *path, const char *value) {
     FILE *f = fopen(path, "w");
     if (!f) { log_warn("firewall: sysctl %s: %s", path, strerror(errno)); return -1; }
@@ -61,7 +59,7 @@ static int apply_antispoof(void) {
     return err;
 }
 
-/* map IPPROTO_* to nftables keyword. */
+// map IPPROTO_* to nftables keyword.
 static const char *proto_str(int p) {
     switch (p) {
         case IPPROTO_TCP: return "tcp";
@@ -70,12 +68,10 @@ static const char *proto_str(int p) {
     }
 }
 
-/* flush old ruleset before writing new one (atomic replace). */
 static void write_header(FILE *f) {
     fprintf(f, "# route-daemon firewall\nflush ruleset\n");
 }
 
-/* nat: prerouting DNAT for port forwards, postrouting masquerade on WAN. */
 static void write_nat(FILE *f, const rd_config *c) {
     fprintf(f,
         "table ip nat {\n"
@@ -97,7 +93,7 @@ static void write_nat(FILE *f, const rd_config *c) {
         "}\n", c->wan_iface);
 }
 
-/* input: default drop; allow loopback, established/related, rate-limited ICMP, LAN mgmt ports. */
+// input: default drop; allow loopback, established/related, rate-limited ICMP, LAN mgmt ports.
 static void write_input(FILE *f, const rd_config *c) {
     fprintf(f,
         "    chain input {\n"
@@ -118,7 +114,8 @@ static void write_input(FILE *f, const rd_config *c) {
         "    }\n");
 }
 
-/* forward: default drop; drop RFC1918 sources from WAN, established/related pass, LAN->WAN accept, WAN->LAN only established/related (DNAT'd replies). */
+// forward: default drop; drop RFC1918 sources from WAN, established/related pass, LAN->WAN accept,
+// WAN->LAN only established/related (DNAT'd replies).
 static void write_forward(FILE *f, const rd_config *c) {
     fprintf(f,
         "    chain forward {\n"
@@ -138,7 +135,7 @@ static void write_forward(FILE *f, const rd_config *c) {
         c->wan_iface, c->lan_iface);
 }
 
-/* filter table: input + forward + output (output open; daemon's own traffic isn't restricted). */
+// filter table: input + forward + output (output open; daemon's own traffic isn't restricted).
 static void write_filter(FILE *f, const rd_config *c) {
     fprintf(f, "table ip filter {\n");
     write_input(f, c);
@@ -150,7 +147,7 @@ static void write_filter(FILE *f, const rd_config *c) {
         "}\n");
 }
 
-/* write the full ruleset to NFT_CONF. */
+// write the full ruleset to NFT_CONF.
 static int generate_ruleset(const rd_config *cfg) {
     FILE *f = fopen(NFT_CONF, "w");
     if (!f) { log_error("firewall: fopen %s: %s", NFT_CONF, strerror(errno)); return -1; }
@@ -161,7 +158,6 @@ static int generate_ruleset(const rd_config *cfg) {
     return 0;
 }
 
-/* check nft binary is on PATH. */
 int firewall_init(void) {
     if (access("/sbin/nft", X_OK) != 0 && access("/usr/sbin/nft", X_OK) != 0) {
         log_error("firewall: nft binary not found");
@@ -172,14 +168,14 @@ int firewall_init(void) {
 
 int firewall_apply(const rd_config *cfg) {
     if (!cfg) return -1;
-    run_cmd("nft list ruleset > " NFT_BACKUP);                              /* save current for rollback */
+    run_cmd("nft list ruleset > " NFT_BACKUP);                              // save current for rollback
     if (generate_ruleset(cfg) < 0) return -1;
-    if (run_cmd("nft -f " NFT_CONF) < 0) {                                /* apply; restore on fail */
+    if (run_cmd("nft -f " NFT_CONF) < 0) {                                // apply; restore on fail
         log_error("firewall: apply failed, rolling back");
         run_cmd("nft -f " NFT_BACKUP);
         return -1;
     }
-    apply_antispoof();                                                     /* rp_filter, conntrack, martians */
+    apply_antispoof();                                                     // rp_filter, conntrack, martians
     active = true;
     log_info("firewall: applied (forwards=%d, mgmt_ports=%d, antispoof)",
              cfg->port_forward_count, cfg->management_port_count);
@@ -188,7 +184,6 @@ int firewall_apply(const rd_config *cfg) {
 
 bool firewall_is_active(void) { return active; }
 
-/* drop our tables; idempotent. */
 int firewall_flush(void) {
     run_cmd("nft delete table ip filter 2>/dev/null");
     run_cmd("nft delete table ip nat 2>/dev/null");

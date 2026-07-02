@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 
-/* cake on WAN egress (shapes uploads) + cake on ifb0 (shapes downloads) via tc ingress redirect. Egress+ingress shaping + AQM = bufferbloat mitigation. */
+// cake on WAN egress (shapes uploads) + cake on ifb0 (shapes downloads) via tc ingress redirect.
+// Egress+ingress shaping + AQM = bufferbloat mitigation.
 
 #include "shaper.h"
 #include "log.h"
@@ -9,6 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
+
+static char saved_wan[32];
+static bool active = false;
 
 static int run(const char *cmd) {
     int rc = system(cmd);
@@ -37,9 +41,6 @@ static int ingress_to_ifb(const char *wan, int kbps) {
         wan, wan, kbps);
     return run(c);
 }
-
-static char saved_wan[32];
-static bool active = false;
 
 int shaper_init(const rd_config *cfg) {
     if (!cfg || cfg->wan_iface[0] == '\0') return -1;

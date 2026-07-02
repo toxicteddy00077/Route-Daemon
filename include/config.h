@@ -7,15 +7,15 @@
 #define MAX_PORT_FORWARDS 8
 #define MAX_MGMT_PORTS    8
 
-/* One port-forward rule: rewrite incoming traffic to an internal host. */
+// One port-forward rule: rewrite incoming traffic to an internal host.
 struct port_forward {
-    int  proto;       /* IPPROTO_TCP or IPPROTO_UDP */
+    int  proto;       // IPPROTO_TCP or IPPROTO_UDP
     int  ext_port;
     char int_ip[32];
     int  int_port;
 };
 
-/* Singleton rd_config; atomic reload via config_reload(). Returned structs are read-only. */
+// Singleton rd_config; atomic reload via config_reload(). Returned structs are read-only.
 typedef struct {
     log_levels log_level;        // Minimum severity written to logs.
     char       log_path[256];
@@ -38,13 +38,13 @@ typedef struct {
     char wifi_country[4];
     int wifi_channel;
 
-    /* Phase 2: firewall. Append new fields at the end. */
+    // Phase 2: firewall. Append new fields at the end.
     int management_port_count;
     int management_ports[MAX_MGMT_PORTS];
     int port_forward_count;
     struct port_forward port_forwards[MAX_PORT_FORWARDS];
 
-    /* Phase 3: shaping (kbps). 0 = skip. */
+    // Phase 3: shaping (kbps). 0 = skip.
     int wan_bandwidth_up;
     int wan_bandwidth_down;
 } rd_config;
@@ -53,8 +53,8 @@ int config_load(const char *env_path);
 
 const rd_config *config_get(void);
 
- // Re-read the last-loaded path and atomically swap it in.
- // On any failure the previous config stays active.
+// Re-read the last-loaded path and atomically swap it in.
+// On any failure the previous config stays active.
 int config_reload(void);
 
 void config_free(rd_config *cfg);

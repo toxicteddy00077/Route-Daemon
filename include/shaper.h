@@ -3,7 +3,7 @@
 
 #include "config.h"
 
-/* ingress + egress shaping via cake on ifb0 + WAN. 0 kbps = skip. */
+// ingress + egress shaping via cake on ifb0 + WAN. 0 kbps = skip.
 
 int  shaper_init(const rd_config *cfg);
 int  shaper_teardown(void);
