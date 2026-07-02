@@ -1,0 +1,54 @@
+{
+  "_comment_logging": "log_level: trace|debug|info|warn|error|fatal",
+  "log_level": "info",
+
+  "_comment_log_path": "Where the daemon writes its log file. Leave default unless you know what you're doing.",
+  "log_path": "/var/log/route-daemon/route-daemon.log",
+
+  "_comment_pid_file": "Path to the PID file used for liveness checks and graceful shutdown.",
+  "pid_file": "/run/route-daemon.pid",
+
+  "_comment_log_to_stderr": "Also mirror log lines to stderr (recommended for docker logs).",
+  "log_to_stderr": true,
+
+  "_comment_daemonize": "When true, the daemon forks into the background. Containers should leave this false so logs flow to docker logs.",
+  "daemonize": false,
+
+  "_comment_wan_iface": "Uplink interface facing the internet. MUST be set by the operator. Examples: eth0, wwan0.",
+  "wan_iface": "wlan0",
+
+  "_comment_lan_iface": "Onboard / USB WiFi interface that will run hostapd as the LAN/AP. MUST be set by the operator.",
+  "lan_iface": "wlan1",
+
+  "_comment_lan_address": "IP address the daemon assigns to the LAN interface (also the gateway / DHCP server).",
+  "lan_address": "192.168.50.1",
+  "lan_subnet": "192.168.50.0/24",
+
+  "_comment_dhcp": "DHCP range handed out to WiFi clients. Lease time uses dhcpd syntax (e.g. 12h, 30m).",
+  "dhcp_range_start": "192.168.50.10",
+  "dhcp_range_end":   "192.168.50.250",
+  "dhcp_lease_time":  "12h",
+
+  "_comment_dns": "Upstream DNS servers pushed to DHCP clients. Up to 3 entries.",
+  "dns_servers": ["1.1.1.1", "8.8.8.8"],
+
+  "_comment_wifi": "AP credentials. Password must be 8+ ASCII chars for WPA2.",
+  "wifi_ssid":     "Route-Daemon",
+  "wifi_password": "change-me-please",
+  "wifi_country":  "IN",
+  "wifi_channel":  6,
+
+  "_comment_management_ports": "TCP ports exposed on the LAN side only (e.g. future Web UI on 8080). Empty = none.",
+  "management_ports": [],
+
+  "_comment_port_forwards": "DNAT rules: array of {proto, ext_port, int_ip, int_port}. proto: 'tcp' (default) or 'udp'. Empty = none.",
+  "port_forwards": [],
+  "_example_port_forwards": [
+    { "proto": "tcp", "ext_port": 80,    "int_ip": "192.168.50.10", "int_port": 80 },
+    { "proto": "udp", "ext_port": 51820, "int_ip": "192.168.50.20", "int_port": 51820 }
+  ],
+
+  "_comment_shaping": "Bandwidth shaping in kbps. 0 disables shaping on that direction. Used by cake/fq_codel.",
+  "wan_bandwidth_up":   0,
+  "wan_bandwidth_down": 0
+}

@@ -32,7 +32,7 @@ int main(void) {
 
     char buf1[4096], buf2[4096];
 
-    /* --- 1. basic write produces timestamp + level + message --- */
+    // --- 1. basic write produces timestamp + level + message ---
     log_init(path, LOG_TRACE, false);
     log_info("hello %s", "world");
     log_close();
@@ -40,9 +40,9 @@ int main(void) {
     ASSERT(out != NULL);
     ASSERT(strstr(out, " INFO ") != NULL);
     ASSERT(strstr(out, "hello world") != NULL);
-    ASSERT(strstr(out, "test_log.c:") != NULL);  /* file:line present */
+    ASSERT(strstr(out, "test_log.c:") != NULL);  // file:line present
 
-    /* --- 2. level filter: LOG_INFO floor drops DEBUG, keeps INFO/WARN --- */
+    // --- 2. level filter: LOG_INFO floor drops DEBUG, keeps INFO/WARN ---
     unlink(path);
     log_init(path, LOG_INFO, false);
     log_debug("dropped-debug");
@@ -54,7 +54,7 @@ int main(void) {
     ASSERT(strstr(out, "kept-info")     != NULL);
     ASSERT(strstr(out, "kept-warn")     != NULL);
 
-    /* --- 3. log_set_level_from_string: case-insensitive, rejects junk --- */
+    // --- 3. log_set_level_from_string: case-insensitive, rejects junk ---
     ASSERT(log_set_level_from_string("debug") == true);
     ASSERT(log_set_level_from_string("DEBUG") == true);
     ASSERT(log_set_level_from_string("Warn")  == true);
@@ -64,7 +64,7 @@ int main(void) {
     ASSERT(log_set_level_from_string("") == false);
     ASSERT(log_set_level_from_string(NULL) == false);
 
-    /* --- 4. log_rotate: old content goes to .1, new file is fresh --- */
+    // --- 4. log_rotate: old content goes to .1, new file is fresh ---
     unlink(path);
     unlink(path1);
     log_init(path, LOG_INFO, false);
@@ -81,19 +81,19 @@ int main(void) {
     ASSERT(strstr(current, "after-rotate")  != NULL);
     ASSERT(strstr(current, "before-rotate") == NULL);
 
-    /* --- 5. log_init with no path leaves fp NULL, writes go nowhere --- */
+    // --- 5. log_init with no path leaves fp NULL, writes go nowhere ---
     log_close();
     unlink(path);
     log_init(NULL, LOG_INFO, false);
     log_info("silent");
-    /* if this crashes or asserts, the test fails; just close cleanly */
+    // if this crashes or asserts, the test fails; just close cleanly
     log_close();
     out = read_file(path, buf1, sizeof(buf1));
     ASSERT(out == NULL);
 
-    /* --- 6. fatal always emits regardless of level floor --- */
+    // --- 6. fatal always emits regardless of level floor ---
     unlink(path);
-    log_init(path, LOG_FATAL, false);  /* floor = FATAL: only FATAL passes */
+    log_init(path, LOG_FATAL, false);  // floor = FATAL: only FATAL passes
     log_info("filtered");
     log_warn("filtered");
     log_fatal("kept-fatal");
@@ -102,7 +102,7 @@ int main(void) {
     ASSERT(strstr(out, "filtered")  == NULL);
     ASSERT(strstr(out, "kept-fatal") != NULL);
 
-    /* --- 7. log_parse_level: same as log_set_level_from_string but non-mutating --- */
+    // --- 7. log_parse_level: same as log_set_level_from_string but non-mutating ---
     log_levels out_level;
     ASSERT(log_parse_level("error", &out_level) == true);
     ASSERT(out_level == LOG_ERROR);
